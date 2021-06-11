@@ -758,7 +758,7 @@
     $(document).on(PP_Checklists.EVENT_TIC, function (event) {
         if ($('[data-type^="taxonomy_counter_hierarchical_"]').length > 0) {
             $('[data-type^="taxonomy_counter_hierarchical_"]').each(function (index, elem) {
-        
+
                 var taxonomy = $(elem).data('type').replace('taxonomy_counter_hierarchical_', ''),
                     count = 0,
                     min_value = parseInt(ppChecklists.requirements[taxonomy + '_count'].value[0]),
@@ -782,7 +782,7 @@
         }
 
     });
-        
+
     /*----------  Non-hierarchical Taxonomies Number  ----------*/
 
     $(document).on(PP_Checklists.EVENT_TIC, function (event) {
@@ -901,7 +901,7 @@
         }
         wp.data.subscribe(
             function () {
-                check_word_count();    
+                check_word_count();
             }
         );
 
@@ -1004,7 +1004,7 @@
                 );
             }
         }
-        
+
         wp.data.subscribe(
             function () {
                 check_internal_links();
@@ -1111,9 +1111,9 @@
                     PP_Checklists.check_valid_quantity(count, min, max)
                 );
 
-            }    
+            }
         }
-        
+
         wp.data.subscribe(
             function () {
                 check_external_links();
@@ -1218,9 +1218,9 @@
                     PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
                     no_missing_alt
                 );
-            }    
+            }
         }
-        
+
         wp.data.subscribe(
             function () {
                 check_image_alt();
@@ -1314,9 +1314,9 @@
                     PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
                     no_invalid_link
                 );
-            }    
+            }
         }
-        
+
         wp.data.subscribe(
             function () {
                 check_validate_links();
@@ -1398,44 +1398,5 @@
      */
     window.PP_Content_Checklist = PP_Checklists;
 
-    /**
-     * Reload the page after save on gutenberg.
-     */
-    if (PP_Checklists.is_gutenberg_active()) {
 
-        var is_saving_post = false;
-        var get_metabox_update_ajax;
-
-        wp.data.subscribe(function () {
-            var isSavingPost = wp.data.select('core/editor').isSavingPost();
-            var isAutosavingPost = wp.data.select('core/editor').isAutosavingPost();
-
-            if (isSavingPost && !isAutosavingPost) {
-                if ( is_saving_post ) {
-                    if ( typeof get_metabox_update_ajax  != 'undefined') {
-                        get_metabox_update_ajax.abort();
-                    }
-                    
-                    get_metabox_update_ajax = $.ajax({
-                        url:ajaxurl,
-                        type: 'POST',
-                        data:{
-                            action:'pp_checklist_metabox_update',
-                            post_id: $('#post_ID').val()
-                        },
-                        success: function(data){
-                            $('#pp_checklist_meta-meta-box').parent().html(data.result);
-                            ppChecklists.requirements = data.requirements;
-                            $(document).trigger(PP_Checklists.EVENT_TIC);
-                        }
-                    });
-
-                    is_saving_post = false;
-                } else {
-                    is_saving_post = true;
-                }
-            }
-
-        });
-    }
 })(jQuery, window, document, new wp.utils.WordCounter());

@@ -34,6 +34,7 @@ use PublishPress\Checklists\Core\Legacy\Util;
 use PublishPress\Checklists\Core\Plugin;
 use PublishPress\Checklists\Core\Requirement\Base_requirement;
 use PublishPress\Checklists\Core\Requirement\Custom_item;
+use PublishPress\Checklists\Core\Utils\Requirements;
 
 if (!class_exists('PPCH_Checklists')) {
     /**
@@ -405,12 +406,6 @@ if (!class_exists('PPCH_Checklists')) {
             add_filter('publishpress_checklists_rules_list', [$this, 'filterRulesList']);
 
             add_filter('publishpress_checklists_requirement_list', [$this, 'filterRequirementsRule'], 1000);
-
-            add_filter('publishpress_checklists_requirement_list', [$this, 'filterRequirementsByStatus'], 1001, 2);
-
-            add_action('wp_ajax_pp_checklist_metabox_update', [$this, 'update_metabox']);
-
-            add_action('wp_ajax_nopriv_pp_checklist_metabox_update', [$this, 'update_metabox']);
         }
 
         /**
@@ -534,14 +529,6 @@ if (!class_exists('PPCH_Checklists')) {
                 $rules = apply_filters('publishpress_checklists_rules_list', []);
                 $roles = self::get_editable_roles_labels();
 
-                $all_post_statuses = get_post_stati(array(), 'objects');
-                $post_statuses     = [];
-
-                foreach ($all_post_statuses as $status_slug => $status) {
-                    $post_statuses[$status_slug] = $status->label;
-                }
-
-
                 // Get all the keys of post types, to select the first one for the JS script
                 $postTypes = array_keys($this->get_post_types());
                 // Make sure we are on the first item
@@ -560,7 +547,6 @@ if (!class_exists('PPCH_Checklists')) {
                     [
                         'rules'             => $rules,
                         'roles'             => $roles,
-                        'statuses'          => $post_statuses,
                         'first_post_type'   => current($postTypes),
                         'required_rules'    => $ruquired_rules,
                         'submit_error'      => __(
@@ -646,7 +632,8 @@ if (!class_exists('PPCH_Checklists')) {
             // Apply filters to the list of requirements
             $requirements = apply_filters('publishpress_checklists_requirement_list', $requirements, $post);
 
-            $new_requirements_array = $this->rearrange_requirement_array($requirements);
+            $requirementsUtil = new Requirements();
+            $new_requirements_array = $requirementsUtil->rearrangeRequirementArray($requirements);
 
             $legacyPlugin = Factory::getLegacyPlugin();
 
@@ -880,8 +867,9 @@ if (!class_exists('PPCH_Checklists')) {
 
             $new_requirements_array = array();
 
+            $requirementsUtil = new Requirements();
             foreach ($this->requirements as $post_type => $requirements) {
-                $new_requirements_array[$post_type] = $this->rearrange_requirement_array($requirements, false);
+                $new_requirements_array[$post_type] = $requirementsUtil->rearrangeRequirementArray($requirements, false);
             }
 
             $templateLoader->load(
@@ -893,7 +881,6 @@ if (!class_exists('PPCH_Checklists')) {
                     'lang'         => [
                         'description'     => __('Task', 'publishpress-checklists'),
                         'action'          => __('Disabled, Recommended or Required', 'publishpress-checklists'),
-                        'post_status'     => __('Statuses', 'publishpres-checklists'),
                         'params'          => __('Options', 'publishpress-checklists'),
                         'add_custom_item' => __('Add custom task', 'publishpress-checklists'),
                     ],
@@ -1033,95 +1020,6 @@ if (!class_exists('PPCH_Checklists')) {
                     }
                 }
             }
-        }
-
-        /**
-         * Rearrange the requirements array by custom order
-         *
-         * @param array $requirements
-         * @param boolean $is_on_metabox
-         */
-        protected function rearrange_requirement_array($requirements, $is_on_metabox = true)
-        {
-            $options = (array)get_option('publishpress_checklists_checklists_options');
-
-            $requirement_rule_array = [];
-            $new_requirements_array = [];
-
-            if ($is_on_metabox) {
-                foreach ($requirements as $requirement_key => $p_requirements) {
-                    $requirement_rule_array[$requirement_key . '_rule'] = $requirement_key;
-                }
-            } else {
-                $index = 0;
-                foreach ($requirements as $requirement) {
-                    $requirement_rule_array[$requirement->name . '_rule'] = $index++;
-                }
-            }
-
-            $new_arr = array_intersect_key($options, $requirement_rule_array);
-
-            $requirement_rule_array = array_merge(array_flip(array_keys($new_arr)), $requirement_rule_array);
-
-            $index = 0;
-            foreach ($requirement_rule_array as $req_index) {
-                $new_index                          = ($is_on_metabox) ? $req_index : $index++;
-                $new_requirements_array[$new_index] = $requirements[$req_index];
-            }
-
-            return $new_requirements_array;
-        }
-
-        /**
-         * Filtering requirements by current post/page status.
-         *
-         * @param array $requirements
-         * @param object $post
-         */
-        public function filterRequirementsByStatus($requirements, $post)
-        {
-            $options = get_option('publishpress_checklists_checklists_options');
-            $user    = wp_get_current_user();
-
-            foreach ($requirements as $requirement => $requirementData) {
-                $statusOptionName = $requirement . '_statuses';
-                if (isset($options->{$statusOptionName})) {
-                    $option = $options->{$statusOptionName};
-
-                    if (isset($option[$post->post_type])) {
-                        $statuses = $option[$post->post_type];
-
-                        if (!in_array($post->post_status, $statuses)) {
-                            unset($requirements[$requirement]);
-                        }
-                    }
-                }
-            }
-
-            return $requirements;
-        }
-
-        public function update_metabox()
-        {
-            $post_id = $_REQUEST['post_id'];
-            $post = get_post($post_id);
-
-            $requirements = [];
-
-            // Apply filters to the list of requirements
-            $requirements = apply_filters('publishpress_checklists_requirement_list', $requirements, $post);
-
-            $new_requirements_array = $this->rearrange_requirement_array($requirements);
-
-            ob_start();
-            $this->display_meta_box( $post );
-
-            $result = ob_get_clean();
-            
-            wp_send_json( array(
-                'result' => $result,
-                'requirements' => $new_requirements_array
-            ) );
         }
     }
 }

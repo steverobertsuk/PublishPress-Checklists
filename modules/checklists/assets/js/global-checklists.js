@@ -34,7 +34,7 @@
         show_post_type_requirements(objectL10n_checklists_global_checklist.first_post_type);
 
         $('#pp-checklists-requirements tbody').sortable({
-            items: ' > tr'
+            items : ' > tr'
         });
 
         // Set the event for the post type filter
@@ -91,7 +91,7 @@
          *
          * @param  {string} post_type
          */
-        function show_post_type_requirements(post_type) {
+        function show_post_type_requirements (post_type) {
             // Hide the requirements which are not for the current post type
             $('#pp-checklists-requirements tr.pp-checklists-requirement-row').hide();
             // Display the correct requirements
@@ -106,7 +106,7 @@
          *
          * @return string
          */
-        function get_current_post_type() {
+        function get_current_post_type () {
             var post_type = $('#pp-checklists-post-type-filter a.pp-selected').attr('href').substring(1);
 
             if (post_type === '' || post_type === false || post_type === null || typeof post_type === undefined) {
@@ -122,7 +122,7 @@
          *
          * @param  {string} id
          */
-        function remove_row(id) {
+        function remove_row (id) {
             // Add a special hidden input to flag the delete action
             var $input = $('<input type="hidden" />')
                 .attr('name', 'publishpress_checklists_checklists_options[custom_items_remove][]')
@@ -138,7 +138,7 @@
          *
          * @param  {Event} event
          */
-        function callback_remove_row(event) {
+        function callback_remove_row (event) {
             var $target = $(event.target);
 
             remove_row($target.data('id'));
@@ -152,7 +152,7 @@
          *
          * @return {Element}
          */
-        function create_row(id, title, action, post_type) {
+        function create_row (id, title, action, post_type) {
             var $table = $('#pp-checklists-requirements'),
                 $tr = $('<tr>'),
                 $td = null,
@@ -160,7 +160,6 @@
                 $idField = $('<input type="hidden" />'),
                 $actionField = $('<select>'),
                 $canIgnoreField = $('<select>'),
-                $statusesField = $('<select>'),
                 $optionsField = $('<select>'),
                 $option,
                 $a,
@@ -174,6 +173,8 @@
                 .attr('data-post-type', post_type);
 
             $td = $('<td>').appendTo($tr);
+
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {id: id, column: 'name'}}));
 
             // ID field
             $idField
@@ -197,6 +198,8 @@
                 .attr('placeholder', objectL10n_checklists_global_checklist.enter_name)
                 .appendTo($td);
 
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {id: id, column: 'action'}}));
+
             // Action cell
             $td = $('<td>').appendTo($tr);
             $actionField
@@ -213,6 +216,8 @@
                     .text(label)
                     .appendTo($actionField);
             });
+
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {id: id, column: 'ignore'}}));
 
             // can_ignore cell
             $td = $('<td>').appendTo($tr);
@@ -233,25 +238,7 @@
                     .appendTo($canIgnoreField);
             });
 
-            // Statuses cell
-            $td = $('<td>').appendTo($tr);
-            $statusesField
-                .attr('class', 'pp-checklists-statuses')
-                .attr(
-                    'name',
-                    'publishpress_checklists_checklists_options[' + id + '_statuses][' + post_type + '][]'
-                )
-                .attr('multiple', 'multiple')
-                .appendTo($td);
-
-            $option = $('<option value=""></option>').appendTo($statusesField);
-            $.each(objectL10n_checklists_global_checklist.statuses, function (value, label) {
-                $option = $('<option>')
-                    .attr('value', value)
-                    .attr('selected', 'selected')
-                    .text(label)
-                    .appendTo($statusesField);
-            });
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {id: id, column: 'options'}}));
 
             // Options cell
             $td = $('<td>')
@@ -369,7 +356,7 @@
 
     });
 
-    function uidGen(len) {
+    function uidGen (len) {
         var text = ' ',
             charset = 'abcdefghijklmnopqrstuvwxyz';
 
