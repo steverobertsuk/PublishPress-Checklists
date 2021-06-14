@@ -174,7 +174,7 @@
 
             $td = $('<td>').appendTo($tr);
 
-            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'name', tr: $tr, postType: post_type}}));
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'name', tr: $tr, postType: post_type, id: id}}));
 
             // ID field
             $idField
@@ -198,7 +198,7 @@
                 .attr('placeholder', objectL10n_checklists_global_checklist.enter_name)
                 .appendTo($td);
 
-            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'action', tr: $tr, postType: post_type}}));
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'action', tr: $tr, postType: post_type, id: id}}));
 
             // Action cell
             $td = $('<td>').appendTo($tr);
@@ -217,7 +217,7 @@
                     .appendTo($actionField);
             });
 
-            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'ignore', tr: $tr, postType: post_type}}));
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'ignore', tr: $tr, postType: post_type, id: id}}));
 
             // can_ignore cell
             $td = $('<td>').appendTo($tr);
@@ -238,7 +238,7 @@
                     .appendTo($canIgnoreField);
             });
 
-            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'options', tr: $tr, postType: post_type}}));
+            window.dispatchEvent(new CustomEvent('publishpressChecklistsBeforeColumn', {detail: {column: 'options', tr: $tr, postType: post_type, id: id}}));
 
             // Options cell
             $td = $('<td>')
