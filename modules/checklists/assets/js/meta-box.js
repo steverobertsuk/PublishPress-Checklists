@@ -80,7 +80,7 @@
          * Constant for the interval of the tic event
          * @type {Number}
          */
-        TIC_INTERVAL: 300,
+        TIC_INTERVAL: 500,
 
         /**
          * List of interface elements
@@ -642,9 +642,26 @@
          */
         getEditor: function () {
             return wp.data.select('core/editor');
+        },
+
+        subscribeToWpData: function (callback) {
+            let lastCheckInSeconds;
+            let nowInSeconds;
+
+            wp.data.subscribe(
+                function () {
+                    nowInSeconds = parseInt(new Date().getTime() / 1000);
+
+                    if (lastCheckInSeconds && (nowInSeconds - lastCheckInSeconds) < 1) {
+                        return;
+                    }
+
+                    callback();
+
+                    lastCheckInSeconds = nowInSeconds;
+                }
+            );
         }
-
-
     };
 
     // Exposes and initialize the object
@@ -657,6 +674,7 @@
     } else {
         PP_Checklists.init();
     }
+
 
     /*----------  Warning icon in submit button  ----------*/
 
@@ -862,46 +880,42 @@
     }
 
     /*----------  Word Count ----------*/
-    var lastCount = 0;
+    var lastWordCount = 0;
     if (PP_Checklists.is_gutenberg_active()) {
         /**
          * For Gutenberg
          */
         if ($('#pp-checklists-req-words_count').length > 0) {
-            wp.data.subscribe(
-                function () {
-                    // @todo: why does Multiple Authors "Remove author from new posts" setting cause this to return null?
-                    var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
+            PP_Checklists.subscribeToWpData(function() {
+                // @todo: why does Multiple Authors "Remove author from new posts" setting cause this to return null?
+                var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
 
-                    if (typeof content == 'undefined') {
-                        return;
-                    }
-
-                    var count = wp.utils.WordCounter.prototype.count(content);
-
-                    if (lastCount == count) {
-                        return;
-                    }
-
-
-                    var min = parseInt(ppChecklists.requirements.words_count.value[0]),
-                        max = parseInt(ppChecklists.requirements.words_count.value[1]);
-
-                    $('#pp-checklists-req-words_count').trigger(
-                        PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
-                        PP_Checklists.check_valid_quantity(count, min, max)
-                    );
-
-                    lastCount = count;
+                if (typeof content == 'undefined') {
+                    return;
                 }
-            );
+
+                var count = wp.utils.WordCounter.prototype.count(content);
+
+                if (lastWordCount === count) {
+                    return;
+                }
+
+                var min = parseInt(ppChecklists.requirements.words_count.value[0]),
+                    max = parseInt(ppChecklists.requirements.words_count.value[1]);
+
+                $('#pp-checklists-req-words_count').trigger(
+                    PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
+                    PP_Checklists.check_valid_quantity(count, min, max)
+                );
+
+                lastWordCount = count;
+            });
         }
     } else {
         /**
          * For the Classic Editor
          */
         var $content = $('#content');
-        var lastCount = 0;
         var editor;
 
         /**
@@ -924,7 +938,7 @@
 
             count = counter.count(text);
 
-            if (lastCount === count) {
+            if (lastWordCount === count) {
                 return;
             }
 
@@ -936,7 +950,7 @@
                 PP_Checklists.check_valid_quantity(count, min, max)
             );
 
-            lastCount = count;
+            lastWordCount = count;
         }
 
         // For the editor.
@@ -967,45 +981,41 @@
     }
 
     /*----------  Internal Links ----------*/
-    var lastCount = 0;
+    var lastInternalLinksCount = 0;
     if (PP_Checklists.is_gutenberg_active()) {
         /**
          * For Gutenberg
          */
         if ($('#pp-checklists-req-internal_links').length > 0) {
-            wp.data.subscribe(
-                function () {
-                    var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
+            PP_Checklists.subscribeToWpData(function() {
+                var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
 
-                    if (typeof content == 'undefined') {
-                        return;
-                    }
-
-                    var count = PP_Checklists.extract_internal_links(content).length;
-
-                    if (lastCount == count) {
-                        return;
-                    }
-
-
-                    var min = parseInt(ppChecklists.requirements.internal_links.value[0]),
-                        max = parseInt(ppChecklists.requirements.internal_links.value[1]);
-
-                    $('#pp-checklists-req-internal_links').trigger(
-                        PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
-                        PP_Checklists.check_valid_quantity(count, min, max)
-                    );
-
-                    lastCount = count;
+                if (typeof content == 'undefined') {
+                    return;
                 }
-            );
+
+                var count = PP_Checklists.extract_internal_links(content).length;
+
+                if (lastInternalLinksCount === count) {
+                    return;
+                }
+
+                var min = parseInt(ppChecklists.requirements.internal_links.value[0]),
+                    max = parseInt(ppChecklists.requirements.internal_links.value[1]);
+
+                $('#pp-checklists-req-internal_links').trigger(
+                    PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
+                    PP_Checklists.check_valid_quantity(count, min, max)
+                );
+
+                lastInternalLinksCount = count;
+            });
         }
     } else {
         /**
          * For the Classic Editor
          */
         var $content = $('#content');
-        var lastCount = 0;
         var editor;
 
         /**
@@ -1028,7 +1038,7 @@
 
             count = PP_Checklists.extract_internal_links(text).length;
 
-            if (lastCount === count) {
+            if (lastInternalLinksCount === count) {
                 return;
             }
 
@@ -1040,7 +1050,7 @@
                 PP_Checklists.check_valid_quantity(count, min, max)
             );
 
-            lastCount = count;
+            lastInternalLinksCount = count;
         }
 
         // For the editor.
@@ -1072,45 +1082,41 @@
 
 
     /*----------  External Links ----------*/
-    var lastCount = 0;
+    var lastExternalLinksCount = 0;
     if (PP_Checklists.is_gutenberg_active()) {
         /**
          * For Gutenberg
          */
         if ($('#pp-checklists-req-external_links').length > 0) {
-            wp.data.subscribe(
-                function () {
-                    var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
+            PP_Checklists.subscribeToWpData(function() {
+                var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
 
-                    if (typeof content == 'undefined') {
-                        return;
-                    }
-
-                    var count = PP_Checklists.extract_external_links(content).length;
-
-                    if (lastCount == count) {
-                        return;
-                    }
-
-
-                    var min = parseInt(ppChecklists.requirements.external_links.value[0]),
-                        max = parseInt(ppChecklists.requirements.external_links.value[1]);
-
-                    $('#pp-checklists-req-external_links').trigger(
-                        PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
-                        PP_Checklists.check_valid_quantity(count, min, max)
-                    );
-
-                    lastCount = count;
+                if (typeof content == 'undefined') {
+                    return;
                 }
-            );
+
+                var count = PP_Checklists.extract_external_links(content).length;
+
+                if (lastExternalLinksCount == count) {
+                    return;
+                }
+
+                var min = parseInt(ppChecklists.requirements.external_links.value[0]),
+                    max = parseInt(ppChecklists.requirements.external_links.value[1]);
+
+                $('#pp-checklists-req-external_links').trigger(
+                    PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
+                    PP_Checklists.check_valid_quantity(count, min, max)
+                );
+
+                lastExternalLinksCount = count;
+            });
         }
     } else {
         /**
          * For the Classic Editor
          */
         var $content = $('#content');
-        var lastCount = 0;
         var editor;
 
         /**
@@ -1133,7 +1139,7 @@
 
             count = PP_Checklists.extract_external_links(text).length;
 
-            if (lastCount === count) {
+            if (lastExternalLinksCount === count) {
                 return;
             }
 
@@ -1145,7 +1151,7 @@
                 PP_Checklists.check_valid_quantity(count, min, max)
             );
 
-            lastCount = count;
+            lastExternalLinksCount = count;
         }
 
         // For the editor.
@@ -1182,28 +1188,25 @@
          * For Gutenberg
          */
         if ($('#pp-checklists-req-image_alt').length > 0) {
-            wp.data.subscribe(
-                function () {
-                    var no_missing_alt = false;
-                    var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
+            PP_Checklists.subscribeToWpData(function() {
+                var no_missing_alt = false;
+                var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
 
-                    if (typeof content == 'undefined') {
-                        return;
-                    }
-
-                    var count = PP_Checklists.missing_alt_images(content).length;
-
-                    if (count == 0) {
-                        no_missing_alt = true;
-                    }
-
-                    $('#pp-checklists-req-image_alt').trigger(
-                        PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
-                        no_missing_alt
-                    );
-
+                if (typeof content == 'undefined') {
+                    return;
                 }
-            );
+
+                var count = PP_Checklists.missing_alt_images(content).length;
+
+                if (count === 0) {
+                    no_missing_alt = true;
+                }
+
+                $('#pp-checklists-req-image_alt').trigger(
+                    PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
+                    no_missing_alt
+                );
+            });
         }
     } else {
         /**
@@ -1275,23 +1278,20 @@
          * For Gutenberg
          */
         if ($('#pp-checklists-req-validate_links').length > 0) {
-            wp.data.subscribe(
-                function () {
-                    var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
+            PP_Checklists.subscribeToWpData(function() {
+                var content = PP_Checklists.getEditor().getEditedPostAttribute('content');
 
-                    if (typeof content == 'undefined') {
-                        return;
-                    }
-
-                    var no_invalid_link = PP_Checklists.validate_links_format(content).length === 0;
-
-                    $('#pp-checklists-req-validate_links').trigger(
-                        PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
-                        no_invalid_link
-                    );
-
+                if (typeof content == 'undefined') {
+                    return;
                 }
-            );
+
+                var no_invalid_link = PP_Checklists.validate_links_format(content).length === 0;
+
+                $('#pp-checklists-req-validate_links').trigger(
+                    PP_Checklists.EVENT_UPDATE_REQUIREMENT_STATE,
+                    no_invalid_link
+                );
+            });
         }
     } else {
         /**
